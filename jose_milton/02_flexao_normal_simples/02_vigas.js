@@ -1,3 +1,5 @@
+import { calcularSigmasdLinha } from "./02_sub_rotina"
+
 // 1 - Entrada de dados
 
 // Propriedades dos materiais
@@ -26,7 +28,7 @@ const dimensoes_secão = {
 }
 
 // Momento fletor de serviço
-const Mk = 30 // MPa
+let Mk = 30 // kN.m
 
 // Parâmetros do diagrama retangular para o concreto e profundidade limite da linha neutra
 let lambda, alfac, eu, qsiLimite // lambda, alfa c , deformação limite e qsi limite.
@@ -65,3 +67,60 @@ const miLimite = lambda * qsiLimite * (1 - 0.5 * lambda * qsiLimite)
 mi = Md / (dimensoes_secão.b * (dimensoes_secão.d ** 2) *sigma_cd)
 
 // 8) Solução com armadura simples
+let qsi, As, Aslinha 
+if (mi <= miLimite) {
+    qsi = (1 - Math.sqrt(1 - 2 * mi)) / lambda
+    As = lambda * qsi * dimensoes_secão.b * dimensoes_secão.d * (sigma_cd / fyd)
+    Aslinha = 0
+}
+
+// 9) Solução com armadura dupla
+let esLinha
+if (mi > miLimite) {
+    const qsia = eu / (eu + 10)
+    if (qsiLimite < qsia) {
+        throw new Error('Você deve aumentar as dimensões da seção transversal')
+    }
+    if (qsiLimite <= delta) {
+        throw new Error('Armadura de compressão tracionada, você deve aumentar as dimensões da seção transversal')
+    }
+
+    // Tensão na armadura de compressão
+    esLinha = eu * ((qsiLimite - delta) / qsiLimite)
+
+    // Chamar uma sub-rotina para calcular a tensão sigmasdLinha
+    const sigmasdLinha = calcularSigmasdLinha(Propriedades_materiais.Es, esLinha, fyd)
+
+    // Calcular a armadura da seção superior
+    Aslinha = ((mi - miLimite) * dimensoes_secão.b * dimensoes_secão.d * sigma_cd) / ((1 - delta ) * sigmasdLinha)
+
+    As = (lambda * qsiLimite + ((mi - miLimite) / (1 - delta))) * (dimensoes_secão.b * dimensoes_secão.d * (sigma_cd / fyd))
+
+    // Armadura mínima
+    // Voltar fck e fyd para MPa
+    Propriedades_materiais.fck =10 * Propriedades_materiais.fck
+    Propriedades_materiais.fyk = 10 * fyd
+
+    let romin
+    if (Propriedades_materiais.fck <= 50) {
+        romin = (0.078 * (Propriedades_materiais.fck ** (2/3))) / fyd
+    }
+
+    if (Propriedades_materiais.fck > 50) {
+        romin = (0.5512 * Math.log(1 + 0.11 * Propriedades_materiais.fck))  / fyd
+    }
+
+    if (romin < (0.15 / 100)) {
+        romin = 0.15 / 100
+    }
+
+    const Asmin = romin * dimensoes_secão.b * dimensoes_secão.d
+
+    if (As < Asmin) {
+        As = Asmin
+    }
+    console.log({
+        As: As,
+        Aslinha: Aslinha
+    })
+}
