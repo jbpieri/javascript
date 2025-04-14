@@ -64,7 +64,7 @@ const delta = dimensoes_secão.dlinha / dimensoes_secão.d
 const miLimite = lambda * qsiLimite * (1 - 0.5 * lambda * qsiLimite)
 
 // 7) Momento reduzido solicitante
-mi = Md / (dimensoes_secão.b * (dimensoes_secão.d ** 2) *sigma_cd)
+const mi = Md / (dimensoes_secão.b * (dimensoes_secão.d ** 2) *sigma_cd)
 
 // 8) Solução com armadura simples
 let qsi, As, Aslinha 
